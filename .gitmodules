@@ -1,0 +1,3 @@
+[submodule "qa-features"]
+	path = qa-features
+	url = ../qa-features.git

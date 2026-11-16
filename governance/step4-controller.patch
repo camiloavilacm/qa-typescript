@@ -1,0 +1,73 @@
+--- upstream/harness/scripts/common.py
++++ adapter/harness/scripts/common.py
+@@ -92,6 +92,8 @@
+ def source_digest(root):
+     files = inventory(root)
+     files.pop('harness/state.json', None)
++    # Verified runtime reports stay in the scope inventory, outside source hashing.
++    files={k:v for k,v in files.items() if k != 'reports' and not k.startswith('reports/')}
+     return digest(json.dumps(files, sort_keys=True).encode())
+ 
+ def safe_relative(root, value):
+--- upstream/harness/scripts/verify_step.py
++++ adapter/harness/scripts/verify_step.py
+@@ -8,6 +8,9 @@
+ from common import ROOT, state, validate, preflight, now, digest, source_digest, git_context, write, read, safe_relative, cli_error, audit, sign_evidence, verify_signature, config, location
+ 
+ def command(root, check_id):
++    if state(root)['authorized_step'] == '4' and check_id in ('6-passes', 'result-schema'):
++        if location(root).get('repository') != 'qa-typescript': raise ValueError('Step 4 requires qa-typescript')
++        return [sys.executable, str(root/'tools/verify.py'), '--check', check_id]
+     spec = root if location(root).get('repository') == 'qa-features' else root / 'qa-features'
+     if check_id in config(root, 'steps')['steps']['1']['verification_checks']:
+         return [sys.executable, str(spec / 'tools/validate/validate.py'), '--check', check_id]
+@@ -27,8 +30,8 @@
+ def run(root, check_id):
+     s = state(root)
+     preflight(root, s['authorized_step'], s['owner']['provider'], s['owner']['id'])
+-    if s['authorized_step'] not in ('0.5', '1'):
+-        raise ValueError('Only Phase 0.5 and Step 1 checks are implemented')
++    if s['authorized_step'] not in ('0.5', '1', '4'):
++        raise ValueError('Only Phase 0.5, Step 1 and Step 4 checks are implemented')
+     if check_id not in config(root, 'steps')['steps'][s['authorized_step']]['verification_checks']:
+         raise ValueError('Check is outside the active step')
+     args = command(root, check_id)
+@@ -36,7 +39,7 @@
+     before = source_digest(root)
+     sign_evidence(root, {})  # Fail before executing if external recorder is unavailable.
+     try:
+-        proc = subprocess.run(args, cwd=root, capture_output=True, timeout=300 if check_id == 'native-cycle' else 120)
++        proc = subprocess.run(args, cwd=root, capture_output=True, timeout=600 if check_id in ('6-passes','result-schema') else 300 if check_id == 'native-cycle' else 120)
+         code, log = proc.returncode, proc.stdout + b'\nSTDERR:\n' + proc.stderr
+     except subprocess.TimeoutExpired as e:
+         code, log = None, (e.stdout or b'') + (e.stderr or b'') + b'\nTIMEOUT'
+@@ -69,12 +72,18 @@
+         raise ValueError('Evidence is stale for current source')
+     if evidence['cwd'] != str(root) or evidence['step'] != state(root)['authorized_step']:
+         raise ValueError('Evidence belongs to a different workspace or step')
++    if evidence['step'] == '4':
++        import importlib.util
++        spec=importlib.util.spec_from_file_location('step4_verifier', root/'tools/verify.py')
++        verifier=importlib.util.module_from_spec(spec);spec.loader.exec_module(verifier);verifier.verify_saved()
++        if ('RESULT_RECEIPT_SHA256 '+digest((root/'reports/latest.json').read_bytes())) not in log.read_text():
++            raise ValueError('Execution results differ from signed receipt')
+     return evidence['status']
+ 
+ def gate(root):
+     s = state(root)
+     preflight(root, s['authorized_step'], s['owner']['provider'], s['owner']['id'])
+-    if s['authorized_step'] not in ('0.5', '1'):
++    if s['authorized_step'] not in ('0.5', '1', '4'):
+         raise ValueError('No product-step completion implementation')
+     latest = {}
+     for path in s['evidence']:
+@@ -88,6 +97,9 @@
+         for name in config(root, 'steps')['steps']['1']['required_outputs']:
+             if not (spec / name).exists():
+                 failures.append('Missing required specification output: ' + name)
++    if s['authorized_step'] == '4':
++        for name in ('README.md','package-lock.json','cypress.config.ts','cypress/e2e/auth.cy.ts','runner/report.cjs','tools/verify.py'):
++            if not (root/name).is_file(): failures.append('Missing Step 4 output: '+name)
+     for name in required:
+         try:
+             if name not in latest or validate_evidence(root, latest[name]) != 'PASS':
