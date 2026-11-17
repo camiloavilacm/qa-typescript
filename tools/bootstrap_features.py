@@ -6,11 +6,13 @@ REF=(ROOT/'feature-ref.txt').read_text().strip()
 def run(args):return subprocess.run(args,check=True,capture_output=True,text=True).stdout.strip()
 def bootstrap():
     target=ROOT/'qa-features'
-    if target.exists():
+    assert not target.is_symlink(), 'Submodule path must not be a symlink'
+    if target.exists() and any(target.iterdir()):
+        assert (target/'.git').exists(), 'Nonempty submodule directory is not initialized Git'
         assert run(['git','-C',str(target),'rev-parse','HEAD'])==REF
         assert not run(['git','-C',str(target),'status','--porcelain'])
         print('Pinned submodule already present');return
-    target.mkdir()
+    target.mkdir(exist_ok=True)
     run(['git','init','--quiet',str(target)])
     run(['git','-C',str(target),'bundle','unbundle',str(ROOT/'bootstrap/qa-features.bundle')])
     run(['git','-C',str(target),'checkout','--quiet','--detach',REF])

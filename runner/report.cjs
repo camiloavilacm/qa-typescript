@@ -15,7 +15,7 @@ function finish(options,records,run){
   return {id,status,duration_ms:test?.attempts?.reduce((n,a)=>n+(a.wallClockDuration||0),0)||0,observer,artifacts:[artifact(dir,id+'/network.json',observer,'network'),artifact(dir,id+'/checks.json',checks,'log')],error:status==='passed'?null:'Scenario, hook or observation did not complete successfully'};
  });
  const status=['error','failed','not_run','passed'].find(s=>scenarios.some(r=>r.status===s));
- const result={schema_version:'1.0',issue_id:'SEED-1',campaign_id:options.campaign,execution_id:options.execution,feature_ref:REF,tooling_ref:null,slot_id:options.sut+':cypress',sut_revision:options.sutRevision,runner_revision:options.revision,started_at:options.started,finished_at:new Date().toISOString(),status,scenarios};
+ const result={schema_version:'1.0',issue_id:'SEED-1',campaign_id:options.campaign,execution_id:options.execution,feature_ref:REF,tooling_ref:options.toolingRef||null,slot_id:options.sut+':cypress',sut_revision:options.sutRevision,runner_revision:options.revision,started_at:options.started,finished_at:new Date().toISOString(),status,scenarios};
  if(run.status==='failed'||run.totalFailed||run.totalTests!==3){if(result.status==='passed'){result.status='error';result.scenarios[0].status='error';result.scenarios[0].error='Cypress run integrity failure';}}
  write(path.join(dir,'results.json'),result);return result;
 }
