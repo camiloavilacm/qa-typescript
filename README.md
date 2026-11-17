@@ -1,4 +1,6 @@
-# Cypress authentication QA runner — Step 4
+# Cypress authentication QA runner — showcase example
+
+Part of the [AI-assisted automation showcase](https://github.com/camiloavilacm/qa-features). Choose a framework to study; running all three together is optional. Start with the [reviewer guide](https://github.com/camiloavilacm/qa-features/blob/main/REVIEWER_GUIDE.md) or [tested one-framework first run](https://github.com/camiloavilacm/qa-features/blob/main/docs/first-run.md).
 
 Runs the unchanged, approved SEED-1 Gherkin against sut-python and sut-node. The official Gherkin parser reads the pinned feature; each step must have an exact implementation. Original story/AC tags and scenario names become test titles. Three scenarios per SUT produce six real Cypress passes. There is no test healing, runtime AI, tracker or campaign orchestration.
 
@@ -36,8 +38,10 @@ cy.intercept observes real requests with req.continue; it does not supply stub r
 
 The reporter reconciles actual Cypress test outcomes with submitted observations, then emits the shared results.schema.json, hash-bound network/check artifacts and immutable runner/SUT/feature provenance. The verifier checks both schema and semantic integrity, rejects tampered evidence, and runs live observer fault cases. Signed harness receipts bind exact result hashes; gates revalidate the current artifacts.
 
-Development checks use harness/scripts/preflight.py, verify_step.py run --check 6-passes, verify_step.py run --check result-schema, verify_step.py validate, verify_step.py gate, and scope_guard.py against the retained baseline. Operator-owned QA_AUTHORIZATION_FILE and QA_EVIDENCE_KEY_FILE are required for writable development activation. The frozen canonical harness is untouched; the local controller extension and exact hashes are recorded in governance/. Runtime reports stay in the scope audit and are excluded only from source hashing.
+Development checks use harness/scripts/preflight.py, verify_step.py run --check 6-passes, verify_step.py run --check result-schema, verify_step.py validate, verify_step.py gate, and scope_guard.py against the retained baseline. Operator-owned QA_AUTHORIZATION_FILE and QA_EVIDENCE_KEY_FILE are required for writable development activation. The current shared controller and formal outcome contract are distributed locally, with exact provenance under harness/ and governance/. Runtime reports stay in the scope audit and are excluded only from source hashing.
 
-Claude remains artifacts-only; live Claude is NOT RUN. This repository stops at Step 4. Steps 5–7 require separate authorization.
+Claude remains artifacts-only; live Claude is NOT RUN. The overall seven-step showcase is complete; campaign and release orchestration live in qa-features. Further writable maintenance requires its own authorization.
 
 Implementation references: [Cypress configuration](https://docs.cypress.io/app/references/configuration), [TypeScript support](https://docs.cypress.io/app/tooling/typescript-support), and [Cypress 16 environment migration](https://docs.cypress.io/app/references/migration-guide).
+
+Code is [MIT licensed](LICENSE). See [contribution guidance](CONTRIBUTING.md), [security scope](SECURITY.md), and [third-party notices](THIRD_PARTY_NOTICES.md).
